@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <script src="script.js" type="module"></script>
+    <link rel="stylesheet" href="index.css" />
+    <link rel="shourtcut icon" href="favicon.png" />
+    <title>bytebeat thing</title>
+</head>
+
+<body>
+    <p noscr style="background-color: aliceblue;">This page primarially uses JS to work; please turn it on</p>
+    <centerer><canvas width="512" height="512" align="center" entry-canvas>
+        hello
+    </canvas></centerer>
+    <br />
+    <centerer><div flex-controls>
+        <button play-button flex-controls-option flex-grow>Begin audio</button>
+        <button register-button flex-controls-option flex-grow disabled>Register code</button>
+        <button reset-button flex-controls-option flex-grow disabled>Reset time</button>
+        <button register-and-reset-button flex-controls-option flex-grow disabled>Register code + Reset time</button>
+        <select visual-select flex-controls-option flex-grow>
+            <option value="0" selected>Samples</option>
+            <option value="1">Spectrogram</option>
+        </select>
+    </div></centerer>
+    <p error align="center">No Error</p>
+    <textarea input-area>(t&lt;&lt;1&amp;t*3&amp;-t&gt;&gt;5&t&gt;&gt;11)-1
+//rate: 8000</textarea>
+</body>
+
+</html>

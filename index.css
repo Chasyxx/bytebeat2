@@ -1,0 +1,56 @@
+body {
+    padding: 0;
+    margin: 0;
+    background-color: #000;
+}
+
+@font-face {
+    font-family: tomo;
+    src: url('tomo.ttf');
+}
+
+p {
+    background-color: aliceblue;
+    font: 12px tomo;
+}
+
+canvas {
+    background-color: #248;
+    color: #000;
+}
+
+[flex-controls] {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+centerer {
+    display: flex;
+    justify-content: center;
+}
+
+[flex-controls-option] {
+    color: #48F;
+    background-color: #248;
+    border: 2px #48F ridge;
+    min-width: fit-content;
+}
+
+* :disabled {
+    cursor: not-allowed;
+    opacity: 50%;
+}
+
+[flex-grow] {
+    flex-grow: 1;
+}
+
+[input-area] {
+    width: 99%;
+    color: #48F;
+    background-color: #248;
+    border: 2px #48F ridge;
+    resize: none;
+    height: 128px;
+}
