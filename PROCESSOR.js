@@ -31,13 +31,15 @@ class BytebeatProcessor extends AudioWorkletProcessor {
 
             for (let i = 0; i < outputChannel.length; ++i) {
                 if ((this.subt < 1) || (this.rate > this.sampleContextRate)) {
-                    let byte = (this.last+1)*127.5;
-                    const out = this.func(Math.floor(this.t))
-                    try { byte = (isNaN(out[0]??out)?((this.last+1)*127.5):+(out[0]??out)) & 255 }
-                    catch(e) {this.sendData({runtimeError: {place: this.t, message: e.message || `[[[throw]]] ${e}`}})}
-                    this.last = isNaN(+byte)?this.last:(byte / 127.5 - 1); // Normalize to [-1, 1]
+                    let byte = (this.last + 1) * 127.5;
+                    try {
+                        const out = this.func(Math.floor(this.t))
+                        byte = (isNaN(out[0] ?? out) ? ((this.last + 1) * 127.5) : +(out[0] ?? out)) & 255
+                    }
+                    catch (error) { this.sendData({ runtimeError: { place: this.t, message: error.message || `[[[throw]]] ${error}` } }) }
+                    this.last = isNaN(+byte) ? this.last : (byte / 127.5 - 1); // Normalize to [-1, 1]
                     tOut.push(this.last)
-                    this.t+=Math.max(1,this.rate/this.sampleContextRate)
+                    this.t += Math.max(1, this.rate / this.sampleContextRate)
                 }
                 outputChannel[i] = this.last
                 this.subt = (this.subt + 1) % (this.sampleContextRate / this.rate);
@@ -47,8 +49,8 @@ class BytebeatProcessor extends AudioWorkletProcessor {
 
         for (let i = 0; i < tOut.length; i++) {
             this.savedSamples.push(tOut[i])
-            if (this.savedSamples.length == ((this.windowState==2)?((this.rate>16000)?1024:512):2048) || this.savedSamples.length>2047) {
-                if(this.windowState!==0) this.sendData({ samples: this.savedSamples })
+            if (this.savedSamples.length == ((this.windowState == 2) ? ((this.rate > 16000) ? 1024 : 512) : 2048) || this.savedSamples.length > 2047) {
+                if (this.windowState !== 0) this.sendData({ samples: this.savedSamples })
                 this.savedSamples = [];
             }
         }
@@ -72,14 +74,14 @@ class BytebeatProcessor extends AudioWorkletProcessor {
                     .bind(globalThis, ...MathFuncs)
 
                 this.rate = +((data.function.match(/(?<=\/\/rate:\s?)\d+(?=\n|\r\n|$)/g) ?? [8000])[0])
-            } catch(e) {
-                this.sendData({creationError: e.message})
+            } catch (error) {
+                this.sendData({ creationError: error.message })
                 this.func = old;
             }
-            try{
+            try {
                 this.func(0);
-            } catch(e) {
-                this.sendData({runtimeError: {place: 0, message: e.message}})
+            } catch (error) {
+                this.sendData({ runtimeError: { place: 0, message: error.message } })
             }
         }
         if (data.reset) {
@@ -87,7 +89,7 @@ class BytebeatProcessor extends AudioWorkletProcessor {
             this.t = this.subt = this.last = 0;
             this.savedSamples = [];
         }
-        if(data.windowState !== undefined) {
+        if (data.windowState !== undefined) {
             this.windowState = data.windowState;
         }
         //console.log(data)
