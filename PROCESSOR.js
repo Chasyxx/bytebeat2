@@ -12,6 +12,7 @@ class BytebeatProcessor extends AudioWorkletProcessor {
         this.subt = 0;
         this.last = 0;
         this.savedSamples = [];
+        this.windowState = 2;
         this.func = (t) => (
             (t << 1 & t * 3 & -t >> 5 & t >> 11) - 1
         )
@@ -46,8 +47,8 @@ class BytebeatProcessor extends AudioWorkletProcessor {
 
         for (let i = 0; i < tOut.length; i++) {
             this.savedSamples.push(tOut[i])
-            if (this.savedSamples.length > ((this.rate>16000)?1023:511)) {
-                this.sendData({ samples: this.savedSamples })
+            if (this.savedSamples.length == ((this.windowState==2)?((this.rate>16000)?1024:512):2048) || this.savedSamples.length>2047) {
+                if(this.windowState!==0) this.sendData({ samples: this.savedSamples })
                 this.savedSamples = [];
             }
         }
@@ -81,6 +82,9 @@ class BytebeatProcessor extends AudioWorkletProcessor {
             this.reset = true
             this.t = this.subt = this.last = 0;
             this.savedSamples = [];
+        }
+        if(data.windowState !== undefined) {
+            this.windowState = data.windowState;
         }
         //console.log(data)
     }
