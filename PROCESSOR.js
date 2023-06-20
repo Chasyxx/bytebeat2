@@ -76,7 +76,11 @@ class BytebeatProcessor extends AudioWorkletProcessor {
                 this.sendData({creationError: e.message})
                 this.func = old;
             }
-            this.func(0);
+            try{
+                this.func(0);
+            } catch(e) {
+                this.sendData({runtimeError: {place: 0, message: e.message}})
+            }
         }
         if (data.reset) {
             this.reset = true
