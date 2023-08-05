@@ -94,91 +94,34 @@ workletNode.connect(analyserNode)
 function GraphicsSystem(samples) {
 
     const imageData = CTX.getImageData(0, 0, cW, cH);
+    const size = cW*cH;
     const pixelData = imageData.data;
     const mode = +(document.querySelector('[visual-select]').value)
 
-    for (let y = 0; y < cH; y++) { // Shift everything up
-        const pixelOffset = ((y + 1) * cW) * 4;
-        const startOffset = y * cW * 4;
-
-        for (let i = startOffset; i < pixelOffset; i++) {
-            imageData.data[i] = imageData.data[i + (cW * 4)];
-
-        }
+    for (let i = 0; i < size; i++) { // Shift everything up
+        let p = i<<2
+        let p2 = (i+samples.length)<<2
+        pixelData[p]   = pixelData[p2]??0
+        pixelData[++p] = pixelData[++p2]??0
+        pixelData[++p] = pixelData[++p2]??0
+        pixelData[++p] = 255
     }
+
+    const firstPixel = (size-(mode?cH:samples.length));
 
     // Compute spectrogram data
     analyserNode.getByteFrequencyData(buffer);
 
     // Draw on the bottom row
-    for (let i = 0; i < cW; i++) {
+    for (let i = 0; i < samples.length; i++) {
         const value1 = buffer[i];
         const value2 = (samples[i] + 1) * 127.5;
-        const pixelOffset = ((cH - 1) * cW + i) << 2;
+        const pixel = (firstPixel+i) << 2;
 
-        pixelData[pixelOffset] = (mode ? value1 : value2) >> 2;
-        pixelData[pixelOffset + 1] = (mode ? value1 : value2) >> 1;
-        pixelData[pixelOffset + 2] = (mode ? value1 : value2) >> 0;
-        pixelData[pixelOffset + 3] = 255;
-    }
-
-    if (samples.length > 600 && !mode) {
-
-        for (let y = 0; y < cH; y++) { // Shift everything up... again.
-            const pixelOffset = ((y + 1) * cW) * 4;
-            const startOffset = y * cW * 4;
-
-            for (let i = startOffset; i < pixelOffset; i++) {
-                imageData.data[i] = imageData.data[i + (cW * 4)];
-
-            }
-        }
-
-        for (let i = 0; i < cW; i++) {
-            const value = ((samples[i + 512] ?? 1) + 1) * 127.5;
-            const pixelOffset = ((cH - 1) * cW + i) << 2;
-
-            pixelData[pixelOffset] = value >> 2;
-            pixelData[pixelOffset + 1] = value >> 1;
-            pixelData[pixelOffset + 2] = value >> 0;
-            pixelData[pixelOffset + 3] = 255;
-        }
-
-
-        if (samples.length > 1300 && !mode) {
-
-            for (let y = 0; y < cH; y++) { // Shift everything up once again.
-                const pixelOffset = ((y + 3) * cW) * 4;
-                const startOffset = y * cW * 4;
-    
-                for (let i = startOffset; i < pixelOffset; i++) {
-                    imageData.data[i] = imageData.data[i + (cW * 4)];
-    
-                }
-            }
-    
-            for (let i = 0; i < cW; i++) {
-                const value = ((samples[i + 1024] ?? 1) + 1) * 127.5;
-                const pixelOffset = ((cH - 2) * cW + i) << 2;
-    
-                pixelData[pixelOffset] = value >> 2;
-                pixelData[pixelOffset + 1] = value >> 1;
-                pixelData[pixelOffset + 2] = value >> 0;
-                pixelData[pixelOffset + 3] = 255;
-            }
-    
-            for (let i = 0; i < cW; i++) {
-                const value = ((samples[i + 1536] ?? 1) + 1) * 127.5;
-                const pixelOffset = ((cH - 1) * cW + i) << 2;
-    
-                pixelData[pixelOffset] = value >> 2;
-                pixelData[pixelOffset + 1] = value >> 1;
-                pixelData[pixelOffset + 2] = value >> 0;
-                pixelData[pixelOffset + 3] = 255;
-            }
-    
-        }
-
+        pixelData[pixel] = (mode ? value1 : value2) >> 2;
+        pixelData[pixel + 1] = (mode ? value1 : value2) >> 1;
+        pixelData[pixel + 2] = (mode ? value1 : value2) >> 0;
+        pixelData[pixel + 3] = 255;
     }
 
     CTX.putImageData(imageData, 0, 0);
