@@ -1,6 +1,7 @@
+import { deflateRaw, inflateRaw } from './pako.esm.min.mjs';
 document.querySelector('[noscr]').remove()
 
-let canvas = document.querySelector("[entry-canvas]")
+let canvas = document.querySelector("[entry-canvas]");
 const CTX = canvas.getContext('2d', { willReadFrequently: true })
 
 const playButton = document.querySelector('[play-button]')
@@ -11,24 +12,25 @@ const code = document.querySelector('[input-area]')
 const error = document.querySelector('[error]')
 
 let box = 0;
-const cW = canvas.width;
-const cH = canvas.height;
+let cW = canvas.width;
+let cH = canvas.height;
 
-const fftSize = cW << 1; // FFT size for spectrogram
-
-const { hash } = window.location;
-
-if (hash.startsWith('#BYTEBEATTHING_')) {
-    try {
-        const subV = atob(hash.slice(15));
-        const V = subV.replace(/([^][^])/g, (_match, p1) => { return String.fromCharCode((p1.charCodeAt(0) << 8) + p1.charCodeAt(1)) })
-        console.log(V)
-        code.value = V
-    } catch (e) {
-        console.error('URL error [[%s]]', e.stack)
+function sizeFunction() {
+    if(window.innerWidth > 1024 && cW == 512) {
+        cW = canvas.width = 1024;
+    } else if (window.innerWidth <= 1024 && cW == 1024) {
+        cW = canvas.width = 512;
     }
 }
 
+sizeFunction();
+window.addEventListener('resize',sizeFunction);
+
+const { hash } = window.location;
+
+parseUrl();
+
+// Wait so the audioContext doesn't fail to start if autoplay is off
 await new Promise(resolve => { playButton.addEventListener('click', async () => { resolve(); }) })
 
 resetButton.disabled = regButton.disabled = resetAndRegButton.disabled = false
@@ -74,9 +76,9 @@ resetButton.disabled = regButton.disabled = resetAndRegButton.disabled = false
 }*/
 
 playButton.disabled = true
-playButton.innerText = "now playing"
+playButton.innerText = "Now playing... "
 
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const audioContext = new (window.webkitAudioContext || window.AudioContext)();
 
 // Register the Audio Worklet processor
 await audioContext.audioWorklet.addModule('PROCESSOR.js');
@@ -85,10 +87,9 @@ await audioContext.audioWorklet.addModule('PROCESSOR.js');
 const workletNode = new AudioWorkletNode(audioContext, 'bytebeat-processor');
 
 const analyserNode = audioContext.createAnalyser();
-analyserNode.fftSize = fftSize;
+analyserNode.fftSize = 2048;
 const bufferLength = analyserNode.frequencyBinCount;
 const buffer = new Uint8Array(bufferLength);
-analyserNode.getByteTimeDomainData(buffer);
 workletNode.connect(analyserNode)
 
 function GraphicsSystem(samples) {
@@ -96,7 +97,7 @@ function GraphicsSystem(samples) {
     const imageData = CTX.getImageData(0, 0, cW, cH);
     const size = cW*cH;
     const pixelData = imageData.data;
-    const mode = +(document.querySelector('[visual-select]').value)
+        const mode = +(document.querySelector('[visual-select]').value)
 
     for (let i = 0; i < size; i++) { // Shift everything up
         let p = i<<2
@@ -110,6 +111,7 @@ function GraphicsSystem(samples) {
     const firstPixel = (size-(mode?cH:samples.length));
 
     // Compute spectrogram data
+    analyserNode.fftSize = cW<<1;
     analyserNode.getByteFrequencyData(buffer);
 
     // Draw on the bottom row
@@ -131,10 +133,7 @@ function sendData(data) {
     workletNode.port.postMessage(data);
 
     if (data.function) {
-        let funct = data.function
-
-        funct = funct.replace(/([^])/g, (_match, p1) => { return String.fromCharCode(p1.charCodeAt(0) >> 8, p1.charCodeAt(0) & 255) })
-        window.location.hash = '#BYTEBEATTHING_' + btoa(funct).replace(/=/g, '')
+        updateUrl();
     }
 }
 
@@ -144,16 +143,58 @@ function receiveData(e) {
         window.requestAnimationFrame((_timestamp) => GraphicsSystem(data.samples))
     }
     if (data.creationError) {
-        error.innerText = data.creationError
+                error.innerText = data.creationError
     }
     if (data.runtimeError) {
-        error.innerText = `  {{${data.runtimeError.place}}}:\n${data.runtimeError.message}`
+                error.innerText = `  {{${data.runtimeError.place}}}:\n${data.runtimeError.message}`
     }
     // console.log(data)
 }
 
+function updateUrl() {
+    const prog = code.value;
+    window.location.hash = `#bt-${ btoa(String.fromCharCode.apply(undefined,
+    deflateRaw(prog))).replaceAll('=', '') }`;
+}
+
+function parseUrl() {
+    let { hash } = window.location;
+    if(!hash) {
+        updateUrl();
+        ({ hash } = window.location);
+    }
+    let songData;
+    if(hash.startsWith('#bt-')) {
+        const hashString = atob(hash.substr(4));
+        const dataBuffer = new Uint8Array(hashString.length);
+        for(const i in hashString) {
+            if(Object.prototype.hasOwnProperty.call(hashString, i)) {
+                dataBuffer[i] = hashString.charCodeAt(i);
+            }
+        }
+        try {
+            songData = inflateRaw(dataBuffer, { to: 'string' });
+        } catch(err) {
+            console.error(`Couldn't load data from url: ${ err }`);
+        }
+    } else if (hash.startsWith('#BYTEBEATTHING_')) {
+        try {
+            const subV = atob(hash.slice(15));
+            const V = subV.replace(/([^][^])/g, (_match, p1) => { return String.fromCharCode((p1.charCodeAt(0) << 8) + p1.charCodeAt(1)) })
+            console.log(V)
+            songData = V
+        } catch (e) {
+            console.error('URL error [[%s]]', e.stack)
+        }
+    } else {
+        console.error('Couldn\'t load data from url: unrecognized url data');
+    }
+    code.value = songData;
+    updateUrl();
+}
+
 function getFunction() {
-    const string = code.value
+        const string = code.value
 
     const mathNames = Object.getOwnPropertyNames(Math)
     const MathFuncs = mathNames.map(e => Math[e])
@@ -174,12 +215,12 @@ resetButton.addEventListener('click', () => {
     CTX.clearRect(0, 0, cW, cH)
 })
 regButton.addEventListener('click', () => {
-    error.innerText = 'No Error'
-    sendData({ function: code.value })
+        error.innerText = 'No Error'
+        sendData({ function: code.value })
 })
 resetAndRegButton.addEventListener('click', () => {
-    error.innerText = 'No Error'
-    sendData({ function: code.value, reset: true })
+        error.innerText = 'No Error'
+        sendData({ function: code.value, reset: true })
     box = 0;
     CTX.clearRect(0, 0, cW, cH)
 })
@@ -209,7 +250,7 @@ window.addEventListener("focus", handleVisibilityChange);
 window.addEventListener("blur", handleVisibilityChange);
 
 function handleVisibilityChange() {
-    const hidden = (document.hidden ?? document.msHidden ?? document.webkitHidden ?? false)
+        const hidden = (document.hidden ?? document.msHidden ?? document.webkitHidden ?? false)
     if (document.hasFocus() && !hidden) {
         sendData({windowState: 2})
     } else if (!hidden) {

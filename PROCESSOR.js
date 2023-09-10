@@ -49,7 +49,7 @@ class BytebeatProcessor extends AudioWorkletProcessor {
 
         for (let i = 0; i < tOut.length; i++) {
             this.savedSamples.push(tOut[i])
-            if (this.savedSamples.length == ((this.windowState == 2) ? ((this.rate > 16000) ? 1024 : 512) : 2048) || this.savedSamples.length > 2047) {
+            if (this.savedSamples.length == ((this.windowState == 2) ? ((this.rate >= 32000) ? 3072 : (this.rate >= 16000) ? 2048 : 1024) : 8192) || this.savedSamples.length > 8192) {
                 if (this.windowState !== 0) this.sendData({ samples: this.savedSamples })
                 this.savedSamples = [];
             }
