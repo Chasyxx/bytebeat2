@@ -101,7 +101,7 @@ function GraphicsSystem(samples) {
 
     for (let i = 0; i < size; i++) { // Shift everything up
         let p = i<<2
-        let p2 = (i+(mode?cH:samples.length))<<2
+        let p2 = (i+(mode?cW:samples.length))<<2
         pixelData[p]   = pixelData[p2]??0
         pixelData[++p] = pixelData[++p2]??0
         pixelData[++p] = pixelData[++p2]??0
